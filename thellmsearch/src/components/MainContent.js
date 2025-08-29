@@ -1,238 +1,402 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   Box,
   Typography,
   Paper,
-  IconButton,
-  Button,
-  Collapse,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   Checkbox,
+  Button,
+  TextField,
+  Chip,
+  Grow,
+  Fade,
+  Divider,
 } from "@mui/material";
-import { ArrowUpward, Language as LanguageIcon, ArrowDropDown, ArrowDropUp } from "@mui/icons-material";
-import TextareaAutosize from "@mui/material/TextareaAutosize";
+import { Language as LanguageIcon } from "@mui/icons-material";
 
-
-const websites = [
+const initialWebsites = [
   { id: 1, name: "google.com" },
   { id: 2, name: "youtube.com" },
   { id: 3, name: "wikipedia.org" },
   { id: 4, name: "reddit.com" },
   { id: 5, name: "stackoverflow.com" },
+  { id: 6, name: "github.com" },
+  { id: 7, name: "medium.com" },
+  { id: 8, name: "nytimes.com" },
+  { id: 9, name: "bbc.com" },
+  { id: 10, name: "cnn.com" },
+  { id: 11, name: "amazon.com" },
+  { id: 12, name: "ebay.com" },
+  { id: 13, name: "walmart.com" },
 ];
 
-const SearchInput = () => (
-  <Paper
-    component="form"
-    sx={{
-      p: "16px 24px",
-      display: "flex",
-      alignItems: "center",
-      width: "100%",
-      borderRadius: "24px",
-      backgroundColor: "#303134",
-      boxShadow: "none",
-      border: "1px solid #3c4043",
-      transition: "background-color 0.2s",
-      "&:hover": {
-        backgroundColor: "#3c4043",
-      },
-    }}
-  >
-    <TextareaAutosize
-      minRows={1}
-      maxRows={7}
-      placeholder="Ask anything"
-      style={{
-        width: "100%",
-        resize: "none",
-        border: "none",
-        outline: "none",
-        background: "transparent",
-        color: "#e8eaed",
-        fontSize: "16px",
-        fontFamily: "inherit",
-        lineHeight: "1.5",
-      }}
-    />
-    <IconButton
-      type="submit"
-      sx={{
-        p: "8px",
-        ml: 2,
-        alignSelf: "flex-end",
-        backgroundColor: "#131314",
-        color: "#e8eaed",
-        "&:hover": {
-          backgroundColor: "#e8eaed",
-          color: "#131314",
-        },
-      }}
-    >
-      <ArrowUpward />
-    </IconButton>
-  </Paper>
-);
-
-// Component to render a website's favicon with a fallback
 const Favicon = ({ domain }) => {
-  const [showFallback, setShowFallback] = useState(false);
+  const [error, setError] = useState(false);
   const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-
-  if (showFallback) {
-    return <LanguageIcon />;
-  }
-
-  return (
+  return error ? (
+    <LanguageIcon fontSize="small" sx={{ color: "#9e9e9e" }} />
+  ) : (
     <img
       src={faviconUrl}
-      alt={`${domain} favicon`}
+      alt={domain}
       width={20}
       height={20}
-      onError={() => setShowFallback(true)}
-      style={{ borderRadius: '4px' }}
+      style={{ borderRadius: "4px", paddingLeft: "5px" }}
+      onError={() => setError(true)}
     />
   );
 };
 
+const WebsiteSetup = ({ onStart }) => {
+  const [available, setAvailable] = useState(initialWebsites);
+  const [selected, setSelected] = useState(initialWebsites.slice(0, 3));
+  const [newSite, setNewSite] = useState("");
+  const [longPressedId, setLongPressedId] = useState(null);
 
-const WebsiteSelector = () => {
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState([]);
-  const wrapperRef = useRef(null);
+  const pressTimer = useRef(null);
 
-  // This effect handles the "click outside" logic
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setOpen(false);
-      }
+  const toggleWebsite = (site) => {
+    if (selected.find((s) => s.name === site.name)) {
+      setSelected(selected.filter((s) => s.name !== site.name));
+    } else {
+      setSelected([...selected, site]);
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [wrapperRef]);
-
-  const handleToggle = () => {
-    setOpen(!open);
   };
 
-  const handleSelect = (value) => () => {
-    const currentIndex = selected.indexOf(value);
-    const newSelected = [...selected];
+  const handleAdd = () => {
+    if (!newSite.trim()) return;
+    const site = { id: Date.now(), name: newSite.trim() };
+    setSelected([...selected, site]);
+    setAvailable([...available, site]);
+    setNewSite("");
+  };
 
-    if (currentIndex === -1) {
-      newSelected.push(value);
-    } else {
-      newSelected.splice(currentIndex, 1);
-    }
+  const handleMouseDown = (id) => {
+    pressTimer.current = setTimeout(() => {
+      setLongPressedId(id);
+    }, 600);
+  };
 
-    setSelected(newSelected);
+  const handleMouseUp = () => {
+    clearTimeout(pressTimer.current);
+  };
+
+  const handleDeleteAvailable = (id) => {
+    setAvailable((prev) => prev.filter((site) => site.id !== id));
+    setSelected((prev) => prev.filter((site) => site.id !== id));
+    if (longPressedId === id) setLongPressedId(null);
   };
 
   return (
-    <Box sx={{ position: "relative", width: "100%" }} ref={wrapperRef}>
-      <Button
-        onClick={handleToggle}
-        fullWidth
-        endIcon={open ? <ArrowDropUp /> : <ArrowDropDown />}
+    <Box
+      sx={{
+        display: "flex",
+        height: "80vh",
+        p: 4,
+        gap: 4,
+        background: "linear-gradient(145deg, #000, #1c1c1c)",
+      }}
+    >
+      {/* LEFT SIDE */}
+      <Paper
+        elevation={6}
         sx={{
-          mt: 1,
-          justifyContent: "space-between",
-          textTransform: "none",
-          color: "text.secondary",
-          backgroundColor: "#303134",
-          border: "1px solid #3c4043",
-          borderRadius: "12px",
-          p: "8px 16px",
-          "&:hover": {
-            backgroundColor: "#3c4043",
-          },
+          flex: 1.2,
+          p: 3,
+          borderRadius: "16px",
+          backgroundColor: "#111",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        {selected.length > 0
-          ? `${selected.length} website(s) selected`
-          : "Select websites"}
-      </Button>
-      <Collapse in={open} timeout="auto" unmountOnExit>
-        <Paper
-          elevation={4}
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 500, color: "#f5f5f5" }}>
+          Selected Websites
+        </Typography>
+                <Box
           sx={{
-            position: "absolute",
-            width: "100%",
-            top: "calc(100% + 4px)",
-            zIndex: 10,
-            backgroundColor: "#3c4043",
-            borderRadius: "12px",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 1,
+            mb: 3,
+            minHeight: "58px",
+            maxHeight: 250,        // limit height
+            overflowY: "auto",     // enable scroll
+            p: 1,
+            border: "1px solid #444",
+            borderRadius: 2,
           }}
         >
-          <List dense sx={{ p: 1 }}>
-            {websites.map((website) => {
-              const labelId = `checkbox-list-label-${website.id}`;
+          {selected.map((site) => (
+            <Grow in key={site.id}>
+              <Chip
+                icon={<Favicon domain={site.name} />}
+                label={site.name}
+                onDelete={() => toggleWebsite(site)}
+                sx={{
+                  background: "#333",
+                  color: "#f5f5f5",
+                  fontWeight: 500,
+                  "&:hover": { background: "#444" },
+                  transition: "all 0.2s ease",
+                }}
+              />
+            </Grow>
+          ))}
+        </Box>
+
+
+        <Divider sx={{ mb: 2, backgroundColor: "#555" }} />
+
+        <Typography variant="h6" sx={{ mb: 1, fontWeight: 500, color: "#f5f5f5" }}>
+          Available Websites
+        </Typography>
+        <Paper
+          sx={{
+            flexGrow: 1,
+            overflowY: "auto",
+            p: 1,
+            borderRadius: "12px",
+            backgroundColor: "#1c1c1c",
+          }}
+        >
+          <List dense>
+            {available.map((site) => {
+              const isExpanded = longPressedId === site.id;
               return (
-                <ListItem
-                  key={website.id}
-                  secondaryAction={
-                    <Checkbox
-                      edge="end"
-                      onChange={handleSelect(website.id)}
-                      checked={selected.indexOf(website.id) !== -1}
-                      sx={{ color: "#e8eaed" }}
-                    />
-                  }
-                  disablePadding
-                >
-                  <ListItemButton sx={{ borderRadius: "8px" }}>
-                    <ListItemIcon sx={{ minWidth: 40, color: "#e8eaed" }}>
-                      {/* Use the new Favicon component here */}
-                      <Favicon domain={website.name} />
-                    </ListItemIcon>
-                    <ListItemText id={labelId} primary={website.name} />
-                  </ListItemButton>
-                </ListItem>
+                <Fade in key={site.id}>
+                  <ListItem disablePadding sx={{ mb: 1 }}>
+                    <ListItemButton
+                      onClick={() => toggleWebsite(site)}
+                      onMouseDown={() => handleMouseDown(site.id)}
+                      onMouseUp={handleMouseUp}
+                      onMouseLeave={handleMouseUp}
+                      sx={{
+                        borderRadius: "8px",
+                        minHeight: isExpanded ? 72 : 48,
+                        backgroundColor: selected.find((s) => s.name === site.name)
+                          ? "rgba(255,255,255,0.12)"
+                          : "transparent",
+                        "&:hover": { backgroundColor: "rgba(255,255,255,0.08)" },
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <ListItemIcon sx={{ minWidth: 36 }}>
+                        <Favicon domain={site.name} />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={site.name}
+                        primaryTypographyProps={{
+                          color: "#f5f5f5",
+                          fontWeight: selected.find((s) => s.name === site.name)
+                            ? 600
+                            : 400,
+                        }}
+                      />
+                      <Checkbox
+                        edge="end"
+                        checked={!!selected.find((s) => s.name === site.name)}
+                        sx={{ color: "#f5f5f5" }}
+                      />
+                      {isExpanded && (
+                        <Button
+                          size="small"
+                          color="error"
+                          sx={{ ml: 2 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAvailable(site.id);
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </ListItemButton>
+                  </ListItem>
+                </Fade>
               );
             })}
           </List>
         </Paper>
-      </Collapse>
+
+        {/* Start Conversation */}
+        <Button
+          variant="contained"
+          sx={{
+            mt: 3,
+            borderRadius: "12px",
+            py: 1.2,
+            fontWeight: 600,
+            background: "#fff",
+            color: "#000",
+            "&:hover": { background: "#e0e0e0" },
+          }}
+          disabled={selected.length === 0}
+          onClick={() => onStart(selected)}
+        >
+          Start Conversation
+        </Button>
+      </Paper>
+
+      {/* RIGHT SIDE */}
+      <Paper
+        elevation={6}
+        sx={{
+          flex: 0.8,
+          p: 3,
+          borderRadius: "16px",
+          backgroundColor: "#111",
+          height: "fit-content",
+        }}
+      >
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 500, color: "#f5f5f5" }}>
+          Add New Website
+        </Typography>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <TextField
+            fullWidth
+            placeholder="Enter website domain (e.g. example.com)"
+            value={newSite}
+            onChange={(e) => setNewSite(e.target.value)}
+            sx={{
+              input: { color: "#f5f5f5" },
+              backgroundColor: "#1c1c1c",
+              borderRadius: "12px",
+              "& fieldset": { border: "none" },
+            }}
+          />
+          <Button
+            variant="outlined"
+            sx={{
+              borderRadius: "12px",
+              px: 3,
+              color: "#f5f5f5",
+              borderColor: "#555",
+              "&:hover": {
+                borderColor: "#aaa",
+                backgroundColor: "rgba(255,255,255,0.08)",
+              },
+            }}
+            onClick={handleAdd}
+          >
+            Add
+          </Button>
+        </Box>
+      </Paper>
     </Box>
   );
 };
 
-const MainContent = () => (
-  <Box
-    sx={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      flexGrow: 1,
-      width: "100%",
-      maxWidth: "750px",
-      mx: "auto",
-      px: 2,
-      mt: 20,
-    }}
-  >
-    <Typography
-      variant="h2"
-      sx={{ fontWeight: "400", mb: 2, fontSize: "3.5rem" }}
+const MainContent = ({ selectedSites, onBack }) => {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        flexGrow: 1,
+        width: "100%",
+        maxWidth: "750px",
+        mx: "auto",
+        px: 2,
+        mt: 10,
+        color: "#f5f5f5",
+      }}
     >
-     AI Mode
-    </Typography>
-    <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-      Ask questions for better responses
-    </Typography>
-
-    <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <SearchInput />
-      <WebsiteSelector />
+      <Typography variant="h3" sx={{ mb: 2, fontWeight: 600, mt: 10 }}>
+        AI Mode
+      </Typography>
+      <Typography variant="body1" sx={{ mb: 4, color: "#bbb" }}>
+        Ask questions for better responses
+      </Typography>
+      <Paper
+        component="form"
+        sx={{
+          p: "16px 24px",
+          display: "flex",
+          alignItems: "center",
+          width: "100%",
+          borderRadius: "24px",
+          backgroundColor: "#111",
+          border: "1px solid #333",
+        }}
+      >
+        <input
+          placeholder="Ask anything..."
+          style={{
+            width: "100%",
+            border: "none",
+            outline: "none",
+            background: "transparent",
+            color: "#f5f5f5",
+            fontSize: "16px",
+          }}
+        />
+        <Button
+          type="submit"
+          sx={{
+            ml: 2,
+            borderRadius: "12px",
+            px: 3,
+            background: "#fff",
+            color: "#000",
+            "&:hover": { background: "#e0e0e0" },
+          }}
+          variant="contained"
+        >
+          Send
+        </Button>
+      </Paper>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(5, 1fr)",
+          gap: 1,
+          mt: 4,
+          maxHeight: 80,
+          overflowY: "auto",
+          mb: 3,
+          p: 1,
+          border: "1px solid #444",
+          borderRadius: 2,
+        }}
+      >
+        {selectedSites.map((site) => (
+          <Chip
+            key={site.id}
+            icon={<Favicon domain={site.name} />}
+            label={site.name}
+            onDelete={() => onBack(site)}
+            sx={{
+              background: "#333",
+              color: "#f5f5f5",
+              fontWeight: 500,
+              "&:hover": { background: "#444" },
+              transition: "all 0.2s ease",
+              textAlign: "left",
+            }}
+          />
+        ))}
+      </Box>
     </Box>
-  </Box>
-);
+  );
+};
 
-export default MainContent;
+// ✅ Parent Wrapper
+export default function ChatApp() {
+  const [selectedSites, setSelectedSites] = useState(null);
+
+  return selectedSites ? (
+    <MainContent
+      selectedSites={selectedSites}
+      onBack={(site) =>
+        setSelectedSites((prev) => prev.filter((s) => s.id !== site.id))
+      }
+    />
+  ) : (
+    <WebsiteSetup onStart={(sites) => setSelectedSites(sites)} />
+  );
+}

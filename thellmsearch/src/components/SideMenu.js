@@ -22,8 +22,7 @@ const initialHistoryData = [
   { id: 5, title: "Creating a sidebar component" },
 ];
 
-const SideMenu = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
+const SideMenu = ({ isExpanded, setIsExpanded }) => {
   const [historyData, setHistoryData] = useState(initialHistoryData);
   const [hoveredId, setHoveredId] = useState(null);
 
@@ -38,12 +37,8 @@ const SideMenu = () => {
   return (
     <Box
       sx={{
-        display: { xs: "none", md: "flex" },
-        flexDirection: "column",
+        flexShrink: 0,
         pt: 8,
-        position: "absolute",
-        left: 0,
-        top: 0,
         height: "calc(100vh - 65px)",
         width: isExpanded ? 260 : 68,
         transition: "width 0.25s ease-in-out",
@@ -51,8 +46,11 @@ const SideMenu = () => {
         borderRight: "1px solid",
         borderColor: "divider",
         overflowX: "hidden",
+        display: { xs: "none", md: "flex" },
+        flexDirection: "column",
       }}
     >
+      {/* Sidebar header */}
       <Box
         sx={{
           display: "flex",
@@ -90,15 +88,20 @@ const SideMenu = () => {
         )}
       </Box>
 
+      {/* Recent history */}
       <Box
         sx={{
           mt: 2,
           opacity: isExpanded ? 1 : 0,
           visibility: isExpanded ? "visible" : "hidden",
-          transition: "opacity 0.25s 0.1s ease-in-out, visibility 0.25s 0.1s ease-in-out",
+          transition:
+            "opacity 0.25s 0.1s ease-in-out, visibility 0.25s 0.1s ease-in-out",
         }}
       >
-        <Typography variant="subtitle1" sx={{ fontWeight: "bold", px: 2, mb: 1 }}>
+        <Typography
+          variant="subtitle1"
+          sx={{ fontWeight: "bold", px: 2, mb: 1 }}
+        >
           Recent
         </Typography>
         <List>
@@ -110,7 +113,11 @@ const SideMenu = () => {
               onMouseLeave={() => setHoveredId(null)}
               secondaryAction={
                 hoveredId === item.id && (
-                  <IconButton edge="end" color="default" onClick={() => handleDelete(item.id)}>
+                  <IconButton
+                    edge="end"
+                    color="default"
+                    onClick={() => handleDelete(item.id)}
+                  >
                     <DeleteIcon />
                   </IconButton>
                 )

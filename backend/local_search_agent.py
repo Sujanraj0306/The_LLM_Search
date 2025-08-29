@@ -11,7 +11,7 @@ class OllamaSearchAgent:
     An agent that uses an Ollama model to answer questions based on content
     scraped from a whitelisted set of URLs.
     """
-    ## Change: Moved prompts and configurations to class-level constants for better organization.
+    
     SOURCE_SELECTION_PROMPT = """
 You are an expert at selecting the most relevant online resource.
 Your task is to choose the single best option from the following list to answer the user's query.
